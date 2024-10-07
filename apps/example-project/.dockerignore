@@ -1,0 +1,14 @@
+.github
+.pytest_cache
+.venv
+.vscode
+*/*/__pycache__*
+*/*/*.pyc
+*/kubernetes
+*/README.md
+*/tests
+/kubernetes
+/tests
+README.md
+renovate.json
+shipit.yml

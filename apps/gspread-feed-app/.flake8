@@ -1,0 +1,13 @@
+[flake8]
+extend-exclude = ./venv/,./.venv/
+
+filename = *.py
+max-line-length = 100
+extend-ignore = W503
+
+max-complexity = 10
+extend-select = B,C,E,F,W,B9
+
+per-file-ignores =
+     tests/fixtures/example_gspread.py: E501,B950
+     tests/test_parsing.py: E501,B950
