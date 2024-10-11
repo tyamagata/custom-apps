@@ -1,0 +1,84 @@
+version: '3'
+
+services:
+  redis:
+    image: redis:latest
+  postgres: &postgres
+    image: postgres:latest
+    environment:
+      - POSTGRES_USER=dev
+      - POSTGRES_PASSWORD=supersecret
+      - POSTGRES_DB=dev
+  postgres-test:
+    <<: *postgres
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.ci
+    command: flask rq worker
+    user: $UID:$GID
+    volumes:
+      - ".:/app"
+    depends_on:
+      - redis
+      - postgres
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
+      - REDIS_URL=redis://redis:6379
+      - POSTGRES_URL=postgresql://dev:supersecret@postgres/dev
+      - FLASK_SECRET_KEY=supersecret
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.ci
+    volumes:
+      - ".:/app"
+    command: flask run --host=0.0.0.0
+    user: $UID:$GID
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
+      - REDIS_URL=redis://redis:6379
+      - POSTGRES_URL=postgresql://dev:supersecret@postgres/dev
+      - FLASK_SECRET_KEY=supersecret
+    ports:
+      - "5000:5000"
+    depends_on:
+      - redis
+      - postgres
+      - worker
+  sftp:
+      image: atmoz/sftp
+      volumes:
+        - "./tests/e2e_sftp_folder:/home/foo"
+      command: foo:pass:1001
+  test-ci: &test-ci
+    build:
+      context: .
+      dockerfile: Dockerfile.ci
+      cache_from:
+        - 'dev.smartly.af/test-rover-image:latest-master'
+    image: 'dev.smartly.af/test-rover-image:latest-master'
+    command: ["./bin/wait-for-it.sh", "sftp:22", "-t", "120", "--", "pytest"]
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=test
+      - REDIS_URL=redis://redis:6379
+      - POSTGRES_URL=postgresql://dev:supersecret@postgres-test/dev
+    depends_on:
+      - redis
+      - sftp
+      - postgres-test
+  lint:
+    build:
+      context: .
+      dockerfile: Dockerfile.ci
+      cache_from:
+        - 'dev.smartly.af/test-rover-image:latest-master'
+    image: 'dev.smartly.af/test-rover-image:latest-master'
+    command: flake8 app/ tests/ --max-line-length=120
+  test:
+    <<: *test-ci
+    volumes:
+      - ".:/app"
