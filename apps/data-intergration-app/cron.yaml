@@ -1,7 +1,0 @@
-cron:
-- description: "Trigger sync every 10mins"
-  url: /trigger_sync
-  schedule: every 10 mins
-- description: "Clean up old processing entries every week"
-  url: /processing_entry_cleanup
-  schedule: every monday 00:01
